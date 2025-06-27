@@ -1,3 +1,4 @@
+
 import requests
 import os
 import json
@@ -14,10 +15,12 @@ SOURCE_URLS = [
     "https://raw.githubusercontent.com/learnhard-cn/free_proxy_ss/main/v2ray.txt",
     "https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2",
     "https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray",
-    "https://raw.githubusercontent.com/Alvin9999/v2ray/master/v2ray.txt"
+    "https://raw.githubusercontent.com/Alvin9999/v2ray/master/v2ray.txt",
+    "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/vless",
+    "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list_raw.txt"
 ]
 
-GITHUB_SOURCE_LINE = "📎 Source: https://github.com/lexariley/v2ray-test"
+GITHUB_SOURCE_LINE = "📎 Source: https://github.com/yourusername/yourrepo"
 
 def fetch_proxies():
     proxies = []
@@ -26,15 +29,20 @@ def fetch_proxies():
             res = requests.get(url, timeout=10)
             if res.status_code == 200:
                 lines = res.text.strip().splitlines()
-                proxies.extend([line for line in lines if line.startswith("vless://")])
+                proxies.extend([line for line in lines if line.startswith("vless://") or line.startswith("vmess://")])
         except:
             continue
     return list(set(proxies))
 
-def get_ip_from_vless(vless_link):
+def get_ip_from_link(link):
     try:
-        host = vless_link.split("@")[1].split(":")[0]
-        return host
+        if link.startswith("vless://"):
+            return link.split("@")[1].split(":")[0]
+        elif link.startswith("vmess://"):
+            import base64
+            raw = base64.b64decode(link.replace("vmess://", "") + "==").decode(errors="ignore")
+            data = json.loads(raw)
+            return data.get("add", "")
     except:
         return ""
 
@@ -49,7 +57,7 @@ def get_country_emoji(ip):
     return "🌐"
 
 def decorate_proxy(proxy):
-    ip = get_ip_from_vless(proxy)
+    ip = get_ip_from_link(proxy)
     flag = get_country_emoji(ip)
     return f"{flag} {proxy} 🔒 by alirahmti"
 
@@ -70,9 +78,9 @@ def write_subscriptions(decorated):
         print(f"[+] sub{i+1}.txt written with {len(chunk)} proxies")
 
 def main():
-    print("[*] Fetching vless proxies...")
+    print("[*] Fetching vless/vmess proxies...")
     raw = fetch_proxies()
-    print(f"[*] Found {len(raw)} vless proxies. Decorating...")
+    print(f"[*] Found {len(raw)} proxies. Decorating...")
     decorated = process_proxies(raw)
     write_subscriptions(decorated)
 
